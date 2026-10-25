@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Capital Allocation Tool</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one guided column — add options, fill plain-language boxes (with optional estimators), results + 5-year projection populate live, ranked comparison at the end. */
+:root{
+  --bg:#FBFAF7; --surface:#FFFFFF; --surface-2:#F4F3EE; --ink:#1C2420; --muted:#5E6B64;
+  --line:#E4E6E1; --accent:#1F7A5A; --accent-ink:#13543E; --accent-soft:#E7F2EC;
+  --good:#1F7A5A; --warn:#9A6316; --warn-soft:#FBF0DD; --bad:#B03A3A; --bad-soft:#F7E6E4;
+  --display:"Fraunces",Georgia,serif; --ui:"Hanken Grotesk",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111613; --surface:#1A201C; --surface-2:#222925; --ink:#ECEFEA; --muted:#A3ADA6;
+  --line:#2C332E; --accent:#4FB68A; --accent-ink:#BDE6D4; --accent-soft:#1E2B24;
+  --good:#4FB68A; --warn:#D9A24A; --warn-soft:#2A2213; --bad:#D97A7A; --bad-soft:#2C1C1C; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111613; --surface:#1A201C; --surface-2:#222925; --ink:#ECEFEA; --muted:#A3ADA6;
+  --line:#2C332E; --accent:#4FB68A; --accent-ink:#BDE6D4; --accent-soft:#1E2B24;
+  --good:#4FB68A; --warn:#D9A24A; --warn-soft:#2A2213; --bad:#D97A7A; --bad-soft:#2C1C1C; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);line-height:1.5;margin:0}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0}
+p{margin:0}
+.tnum{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+header{padding-block:34px 18px}
+.brandrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mark{width:38px;height:38px;border-radius:11px;background:var(--accent);display:grid;place-items:center;flex:0 0 auto}
+.mark svg{width:22px;height:22px}
+h1{font-size:clamp(1.9rem,5vw,2.5rem);letter-spacing:-.01em}
+.tag{color:var(--muted);font-size:1.02rem;margin-top:10px;max-width:62ch}
+.byline{color:var(--muted);font-size:.86rem;margin-top:10px}
+.byline strong{color:var(--ink)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center}
+button{font-family:var(--ui);font-size:.95rem;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 14px;font-weight:600;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px;font-size:.86rem;border-radius:8px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ratebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:8px}
+.ratebar label{font-weight:600;font-size:.9rem}
+.ratebar input[type=range]{accent-color:var(--accent);flex:1;min-width:120px}
+.cards{display:flex;flex-direction:column;gap:18px;margin-top:22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 18px 6px}
+.card.example{border-style:dashed}
+.cardhead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.cardhead .idx{width:26px;height:26px;border-radius:7px;background:var(--accent-soft);color:var(--accent-ink);font-weight:700;display:grid;place-items:center;font-size:.85rem;flex:0 0 auto}
+.remove{margin-left:auto;border:none;background:transparent;color:var(--muted);font-size:1.3rem;line-height:1;padding:4px 6px;border-radius:7px}
+.remove:hover{color:var(--bad);background:var(--bad-soft)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:.82rem;font-weight:600}
+.field .hint{font-size:.76rem;color:var(--muted)}
+.inwrap{position:relative;display:flex;align-items:center}
+.inwrap .pre{position:absolute;left:11px;color:var(--muted);font-weight:600;pointer-events:none}
+input[type=text],input[type=number]{width:100%;font-family:var(--ui);font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+input.money{padding-left:24px}
+input.pct{padding-right:26px}
+.inwrap .suf{position:absolute;right:11px;color:var(--muted);font-weight:600;pointer-events:none}
+input:focus{border-color:var(--accent);outline:none}
+input::placeholder{color:var(--muted);opacity:.7}
+.annlinks{display:flex;gap:16px;flex-wrap:wrap}
+.linkbtn{background:none;border:none;color:var(--accent);font-weight:600;font-size:.8rem;padding:0;text-align:left;text-decoration:underline;text-underline-offset:2px}
+.helper{display:none;grid-column:1/-1;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:13px;margin-top:4px}
+.helper.show{display:block}
+.helper .htitle{font-size:.82rem;font-weight:700;margin-bottom:4px}
+.helper .hsub{font-size:.76rem;color:var(--muted);margin-bottom:10px}
+.hgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hout{margin-top:12px;font-weight:700;font-size:.92rem;color:var(--accent-ink);border-top:1px solid var(--line);padding-top:10px}
+.result{grid-column:1/-1;margin-top:12px;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end}
+.metric{display:flex;flex-direction:column;gap:2px}
+.metric .mv{font-family:var(--display);font-size:1.4rem;font-weight:600;letter-spacing:-.01em}
+.metric .ml{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.verdict{margin-left:auto;align-self:center;font-weight:700;font-size:.9rem;padding:8px 14px;border-radius:999px;white-space:nowrap}
+.v-good{background:var(--accent-soft);color:var(--accent-ink)}
+.v-warn{background:var(--warn-soft);color:var(--warn)}
+.v-bad{background:var(--bad-soft);color:var(--bad)}
+.v-none{background:var(--surface-2);color:var(--muted)}
+.readnote{grid-column:1/-1;font-size:.84rem;color:var(--muted);margin-top:2px}
+.ready{grid-column:1/-1;margin-top:4px}
+.ready>.rlabel{font-size:.82rem;font-weight:600;margin-bottom:8px}
+.qrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.qrow .qt{font-size:.9rem;flex:1;min-width:160px}
+.yn{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:0 0 auto}
+.yn button{border:none;background:transparent;color:var(--muted);padding:6px 13px;font-weight:600;font-size:.84rem}
+.yn button[aria-pressed=true][data-v=yes]{background:var(--accent);color:#fff}
+.yn button[aria-pressed=true][data-v=no]{background:var(--bad);color:#fff}
+.proj{grid-column:1/-1;margin-top:6px}
+.proj .plabel{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.projwrap{overflow-x:auto}
+table.pt{border-collapse:collapse;font-size:.84rem;min-width:420px;width:100%}
+table.pt th,table.pt td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.pt th:first-child,table.pt td:first-child{text-align:left}
+table.pt th{font-size:.72rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:600}
+table.pt td.neg{color:var(--bad)}
+.addbtn{margin-top:18px}
+section.compare{margin-top:34px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px}
+section.compare h2{font-size:1.35rem}
+.tablewrap{overflow-x:auto;margin-top:14px}
+table.cmp{width:100%;border-collapse:collapse;font-size:.92rem;min-width:540px}
+table.cmp th,table.cmp td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+table.cmp th{font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+table.cmp td.num,table.cmp th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr .rank{font-family:var(--display);font-weight:600;color:var(--accent-ink)}
+.pill{display:inline-block;font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:999px}
+.emptycompare{color:var(--muted);font-size:.95rem;margin-top:10px}
+.takeaway{margin-top:14px;background:var(--accent-soft);color:var(--accent-ink);border-radius:12px;padding:13px 15px;font-size:.92rem;font-weight:500}
+.exec p{font-size:.95rem;margin-bottom:10px}
+.exec ul{margin:0 0 10px;padding-left:20px;font-size:.92rem;display:flex;flex-direction:column;gap:5px}
+.exec .lead{font-family:var(--display);font-size:1.12rem;font-weight:600}
+.exec .cau{color:var(--muted);font-size:.86rem}
+.hpass{color:var(--good);font-weight:700}
+.hfail{color:var(--bad);font-weight:700}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.linkcard{display:flex;flex-direction:column;gap:3px;border:1px solid var(--line);border-radius:12px;padding:13px 15px;text-decoration:none;color:var(--ink);transition:border-color .15s}
+.linkcard:hover{border-color:var(--accent)}
+.linkcard strong{font-size:.92rem;color:var(--accent-ink)}
+.linkcard span{font-size:.82rem;color:var(--muted)}
+@media (max-width:560px){.links{grid-template-columns:1fr}}
+ol.steps{margin:14px 0 0;padding-left:0;list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:10px}
+ol.steps li{counter-increment:s;display:flex;gap:12px;font-size:.93rem}
+ol.steps li::before{content:counter(s);flex:0 0 auto;width:24px;height:24px;border-radius:7px;background:var(--accent-soft);color:var(--accent-ink);font-weight:700;font-size:.82rem;display:grid;place-items:center;font-family:var(--ui)}
+.loop{margin-top:14px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-weight:600;font-size:.9rem;color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:.84rem;font-weight:500}
+.excelcard{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:14px;background:var(--accent-soft);border-radius:12px;padding:14px 16px}
+.excelcard .et{font-size:.9rem;color:var(--accent-ink);font-weight:500;max-width:46ch}
+.legal{color:var(--muted);font-size:.84rem;line-height:1.6}
+.legal h3{font-size:.95rem;color:var(--ink);margin:16px 0 4px}
+.legal .cite{font-family:var(--display);font-size:.9rem;color:var(--ink);background:var(--surface-2);border-radius:8px;padding:8px 11px;display:inline-block;margin-top:4px}
+details.learn{margin-top:28px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:0 18px}
+details.learn summary{cursor:pointer;font-weight:600;padding:15px 0;font-size:1rem;list-style:none;display:flex;align-items:center;gap:8px}
+details.learn summary::-webkit-details-marker{display:none}
+details.learn summary::before{content:"+";color:var(--accent);font-weight:700;font-size:1.2rem}
+details.learn[open] summary::before{content:"–"}
+.learnbody{padding-bottom:16px;display:flex;flex-direction:column;gap:12px}
+.learnbody dt{font-weight:700;font-size:.92rem}
+.learnbody dd{margin:2px 0 0;color:var(--muted);font-size:.9rem}
+section.fb{margin-top:28px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);padding:20px}
+section.fb h2{font-size:1.2rem}
+.fbq{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.fbq .qt{font-size:.9rem;font-weight:500}
+.stars{display:inline-flex;gap:4px}
+.stars button{border:1px solid var(--line);background:var(--surface);color:var(--muted);width:34px;height:34px;border-radius:8px;font-weight:700}
+.stars button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+textarea{width:100%;font-family:var(--ui);font-size:.95rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical;min-height:70px}
+.copyrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.copied{color:var(--good);font-weight:600;font-size:.88rem}
+footer{color:var(--muted);font-size:.8rem;text-align:center;padding:30px 0 40px;line-height:1.6}
+@media (max-width:560px){
+  .grid{grid-template-columns:1fr}
+  .hgrid{grid-template-columns:1fr}
+  .verdict{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="brandrow">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 12 15.5 8.5M12 12l-2.5 4.5"/><circle cx="12" cy="12" r="1.3" fill="#fff" stroke="none"/></svg></span>
+      <h1>Capital Allocation Decision Tool</h1>
+    </div>
+    <p class="tag">A plain-language tool for deciding where to put your money. Enter what a project costs and what you think it'll bring in — it projects five years of cashflow and tells you whether it's worth it, the return on your money, how fast it pays back, and which option to do first. No finance background needed.</p>
+    <p class="byline">An independent tool created by <strong>Flavia Abane Ayolka, MBA, CA</strong> · Version 1.0 · October 2026</p>
+    <div class="toolbar">
+      <button class="btn primary" id="addTop">+ Add an option</button>
+      <button class="btn ghost sm" id="loadEx">Load example</button>
+      <button class="btn ghost sm" id="clearAll">Clear &amp; start mine</button>
+      <button class="btn ghost sm" id="themeBtn" title="Switch light/dark">◐ Theme</button>
+      <a class="btn ghost sm" href="Capital_Allocation_Toolkit.xlsx">⬇ Excel version</a>
+    </div>
+    <div class="ratebar">
+      <label for="rate">Required return</label>
+      <input type="range" id="rate" min="4" max="20" step="1" value="10">
+      <span class="tnum" id="rateVal" style="font-weight:700;min-width:42px">10%</span>
+      <span class="hint muted" style="flex-basis:100%;font-size:.78rem">The yearly return you'd want for tying up your cash. Not sure? Leave it at 10%.</span>
+    </div>
+    <div class="ratebar">
+      <label for="hurdle">Target return (hurdle)</label>
+      <div class="inwrap" style="max-width:120px"><input type="number" id="hurdle" class="pct" placeholder="optional" inputmode="decimal"><span class="suf">%</span></div>
+      <span class="hint muted" style="flex-basis:100%;font-size:.78rem">Optional. Set the lowest return you'd accept, and each option gets marked as clearing it or falling short.</span>
+    </div>
+  </header>
+
+  <div class="cards" id="cards"></div>
+  <button class="btn primary addbtn" id="addBottom">+ Add another option</button>
+
+  <section class="compare" id="execWrap" hidden>
+    <h2>Executive summary</h2>
+    <div id="execBody"></div>
+  </section>
+
+  <section class="compare" id="compare">
+    <h2>Compare &amp; decide</h2>
+    <div id="compareBody"></div>
+  </section>
+
+  <details class="learn">
+    <summary>What do these words mean?</summary>
+    <dl class="learnbody">
+      <div><dt>Value created (NPV)</dt><dd>What all the future cash is worth in today's money, after allowing for time and the return you asked for. Above $0 means the cash you expect is worth more than what you put in. Higher is better.</dd></div>
+      <div><dt>Return on capital (ROC)</dt><dd>The average yearly cash the project brings in, as a percentage of what you put in. A quick read on how hard your money works. Compare it with your required return.</dd></div>
+      <div><dt>Pays back in</dt><dd>Roughly how many years of average cash benefit it takes to get your upfront money back. Shorter is safer.</dd></div>
+      <div><dt>5-year projection</dt><dd>Your best estimate of the cash in and out each year. Year 0 is the money you put in now; Years 1–5 are the net cash you expect back. If you set a yearly growth rate, later years rise (or fall) from the first.</dd></div>
+      <div><dt>Labour, running costs &amp; shrinkage</dt><dd>The estimator subtracts wages, materials/fees, and stock lost to waste, breakage or theft, so the yearly benefit is what's actually left over.</dd></div>
+      <div><dt>Why the highest value isn't always first</dt><dd>A cheaper quick win, or a repair you can't avoid, can reasonably come before the option with the biggest number. The tool organizes the decision; you still make the call.</dd></div>
+    </dl>
+  </details>
+
+  <section class="compare" id="how">
+    <h2>How it works</h2>
+    <ol class="steps">
+      <li>Describe the decision — what you're considering, and why.</li>
+      <li>Estimate the yearly cash benefit — extra income and savings, minus labour, running costs and shrinkage. Use the built-in estimator if you're not sure.</li>
+      <li>The tool works out the value created (NPV) and how fast it pays back.</li>
+      <li>Complete the five-point investment-readiness review.</li>
+      <li>See the return on capital, and whether it clears the target return you set.</li>
+      <li>Compare the option side by side with your other alternatives.</li>
+      <li>Make and record the decision.</li>
+      <li>After you invest, come back and compare actual results with what you expected (the Excel version includes a post-investment review for this).</li>
+    </ol>
+    <div class="loop">Evaluate → Decide → Implement → Measure → Learn → Improve — reviewing after you invest is how the next decision gets better.</div>
+  </section>
+
+  <section class="compare" id="who">
+    <h2>Who can use it</h2>
+    <p class="muted" style="font-size:.9rem;margin-top:6px;max-width:66ch">Built for businesses that don't have a dedicated finance team but still need a disciplined way to weigh an investment. It fits decisions such as:</p>
+    <div class="chips">
+      <span class="chip">Equipment purchases</span><span class="chip">Technology investments</span><span class="chip">Business expansion</span><span class="chip">Store / location improvements</span><span class="chip">Hiring decisions</span><span class="chip">Inventory investments</span><span class="chip">New service offerings</span><span class="chip">Operational improvements</span><span class="chip">Acquisitions</span><span class="chip">Capacity expansion</span>
+    </div>
+    <div class="excelcard">
+      <span class="et">Prefer to work offline, or keep your own copy? The Excel toolkit has the same framework plus a post-investment review and worked examples.</span>
+      <a class="btn primary" href="Capital_Allocation_Toolkit.xlsx">⬇ Download the Excel toolkit</a>
+    </div>
+  </section>
+
+  <section class="compare" id="learnLinks">
+    <h2>New to this? Start here</h2>
+    <p class="muted" style="font-size:.9rem;margin-top:6px">Short, free, plain-language guides from trusted sources. Each opens in a new tab.</p>
+    <div class="links">
+      <a class="linkcard" href="https://www.score.org" target="_blank" rel="noopener"><strong>SCORE — free mentoring</strong><span>Talk through a decision with a volunteer business mentor, at no cost.</span></a>
+      <a class="linkcard" href="https://americassbdc.org" target="_blank" rel="noopener"><strong>Small Business Development Centers</strong><span>Free local advising on finances and planning.</span></a>
+      <a class="linkcard" href="https://www.sba.gov/business-guide/manage-your-business/manage-your-finances" target="_blank" rel="noopener"><strong>SBA — Manage your finances</strong><span>The U.S. Small Business Administration's plain-language money basics.</span></a>
+      <a class="linkcard" href="https://www.investopedia.com/terms/n/npv.asp" target="_blank" rel="noopener"><strong>What is NPV?</strong><span>A simple explainer of "value created."</span></a>
+      <a class="linkcard" href="https://www.investopedia.com/terms/p/paybackperiod.asp" target="_blank" rel="noopener"><strong>What is payback period?</strong><span>How long until you get your money back.</span></a>
+      <a class="linkcard" href="https://www.investopedia.com/terms/r/returnoninvestment.asp" target="_blank" rel="noopener"><strong>What is return on investment?</strong><span>How hard your money is working, in percent.</span></a>
+    </div>
+  </section>
+
+  <section class="compare" id="about">
+    <h2>About the developer</h2>
+    <p style="font-size:.95rem;margin-top:8px;max-width:70ch"><strong>Flavia Abane Ayolka, MBA, CA</strong> is a finance and investment-planning professional whose experience spans capital planning, corporate financial analysis, investment evaluation, strategic finance, audit, healthcare analytics, corporate development, and capital markets. She holds an MBA from Cornell University's SC Johnson College of Business and is a Chartered Accountant.</p>
+    <p class="muted" style="font-size:.9rem;margin-top:10px;max-width:70ch">Her professional and research interests focus on capital allocation, investment decision-making, investment governance, and practical tools that help organizations make better use of limited investment resources. The Capital Allocation Decision Tool draws on these areas of professional experience and applied research.</p>
+  </section>
+
+  <section class="fb" id="fb">
+    <h2>How did this work for you?</h2>
+    <p class="muted" style="font-size:.9rem;margin-top:6px">Optional — a few seconds helps improve the tool. Your answers are added to the summary you can copy and send back.</p>
+    <div id="fbQuestions"></div>
+    <div class="fbq"><span class="qt">Anything confusing, missing, or worth keeping?</span><textarea id="fbComment" placeholder="Type here…"></textarea></div>
+    <div class="fbq"><span class="qt">Did it change a decision or the order you'd do things? How?</span><textarea id="fbChange" placeholder="Type here…"></textarea></div>
+    <div class="copyrow">
+      <button class="btn primary" id="copyBtn">Copy my summary to send</button>
+      <span class="copied" id="copiedMsg" hidden>Copied — paste it into an email.</span>
+    </div>
+  </section>
+
+  <section class="compare" id="legal">
+    <div class="legal">
+      <h3>Version history</h3>
+      <strong style="color:var(--ink)">Version 1.0 — October 2026.</strong> Initial public release: investment-readiness assessment, five-dimension capital-allocation framework, NPV and payback analysis, return on capital, project prioritization, and a practitioner feedback process. Future versions may incorporate improvements based on documented practitioner feedback and real-world use.
+      <h3>Attribution</h3>
+      Capital Allocation Decision Tool, developed by Flavia Abane Ayolka, MBA, CA. © 2026 Flavia Abane Ayolka. When referencing or sharing the framework, please identify the tool and its developer.
+      <div class="cite">Suggested citation: Ayolka, F. A. (2026). <em>Capital Allocation Decision Tool</em>, Version 1.0.</div>
+      <h3>Important notice</h3>
+      This tool is provided for educational and business decision-support purposes. It does not constitute investment, accounting, tax, legal, securities, or other professional advice. Users remain responsible for evaluating their own circumstances, assumptions, risks, and business decisions. Financial projections are inherently uncertain, and actual results may differ from estimates generated using the tool.
+    </div>
+  </section>
+
+  <footer>
+    Capital Allocation Decision Tool · created by Flavia Abane Ayolka, MBA, CA · Version 1.0 (October 2026).<br>Your entries stay in your browser.
+  </footer>
+</div>
+
+<script>
+"use strict";
+var RQ = [
+  "Do I understand the full cost?",
+  "Do I have a realistic estimate of the cash benefit?",
+  "Do I know how I'll pay for it?",
+  "Do I know the steps and timing to get it running?",
+  "Is someone responsible for making it happen?"
+];
+var FBQ = [
+  "I could use this without a finance background",
+  "The money results were understandable",
+  "It helped me compare options more clearly",
+  "It surfaced a risk or gap I hadn't written down",
+  "I would use it again"
+];
+var fmt = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+var rate = 0.10;
+var hurdle = null;
+var projects = [];
+var fb = {scores:{}, comment:"", change:""};
+var uid = 1;
+
+function blank(){ return {
+  id:uid++, name:"", cost:"", annual:"", ready:[null,null,null,null,null], example:false,
+  costOpen:false, cEquip:"", cSetup:"", cStart:"",
+  benMode:"annual", benOpen:false, bSales:"", bLabour:"", bOther:"", bShrink:"", bSave:"", bGrowth:""
+}; }
+
+function exampleSet(){
+  uid = 1;
+  return [
+    {id:uid++, name:"Buy a new espresso machine", cost:"15000", annual:"8700", ready:[true,true,true,true,true], example:true,
+     costOpen:false,cEquip:"",cSetup:"",cStart:"", benMode:"annual",benOpen:false,bSales:"",bLabour:"",bOther:"",bShrink:"",bSave:"",bGrowth:""},
+    {id:uid++, name:"Add online ordering + delivery", cost:"4000", annual:"3000", ready:[true,true,true,null,true], example:true,
+     costOpen:false,cEquip:"",cSetup:"",cStart:"", benMode:"annual",benOpen:false,bSales:"",bLabour:"",bOther:"",bShrink:"",bSave:"",bGrowth:""},
+    {id:uid++, name:"Second location (lease)", cost:"40000", annual:"12000", ready:[true,false,null,null,null], example:true,
+     costOpen:false,cEquip:"",cSetup:"",cStart:"", benMode:"annual",benOpen:false,bSales:"",bLabour:"",bOther:"",bShrink:"",bSave:"",bGrowth:""}
+  ];
+}
+
+function num(v){ var n = parseFloat(v); return isFinite(n)? n : 0; }
+function upfront(p){ return num(p.cost); }
+function base1(p){ return (num(p.bSales)-num(p.bLabour)-num(p.bOther))*12 + num(p.bSave) - num(p.bShrink); }
+function cashflows(p){
+  if(p.benMode==='builder'){
+    var base=base1(p), g=num(p.bGrowth)/100, out=[];
+    for(var i=0;i<5;i++){ out.push(base*Math.pow(1+g,i)); }
+    return out;
+  }
+  var a=num(p.annual); return [a,a,a,a,a];
+}
+function npv(cost, cfs){ var v=-cost; for(var i=0;i<cfs.length;i++){ v += cfs[i]/Math.pow(1+rate,i+1); } return v; }
+function payback(cost, cfs){ var avg=cfs.reduce(function(a,b){return a+b;},0)/cfs.length; return avg>0?cost/avg:null; }
+function roc(cost, cfs){ if(cost<=0) return null; var avg=cfs.reduce(function(a,b){return a+b;},0)/cfs.length; return avg/cost; }
+function readiness(p){ if(p.ready.indexOf(false)>-1) return "pause"; if(p.ready.indexOf(null)>-1) return "incomplete"; return "ready"; }
+function benefitEntered(p){ return p.benMode==='builder' ? (num(p.bSales)||num(p.bSave)||num(p.bLabour)||num(p.bOther)||num(p.bShrink))>0 : num(p.annual)>0; }
+function hasInput(p){ return (p.name||"").trim()!=="" || num(p.cost)>0 || benefitEntered(p); }
+
+var cardsEl = document.getElementById('cards');
+function render(){
+  cardsEl.innerHTML="";
+  projects.forEach(function(p,idx){ cardsEl.appendChild(cardFor(p,idx)); });
+  renderCompare(); renderExec(); save();
+}
+function clearsHurdle(r){ return hurdle!=null && r!=null && r>=hurdle/100; }
+function belowHurdle(r){ return hurdle!=null && r!=null && r<hurdle/100; }
+function field(labelText, hint, inputEl){
+  var f=document.createElement('div'); f.className='field';
+  var l=document.createElement('label'); l.textContent=labelText; f.appendChild(l); f.appendChild(inputEl);
+  if(hint){ var h=document.createElement('span'); h.className='hint'; h.textContent=hint; f.appendChild(h); }
+  return f;
+}
+function moneyInput(val, ph){
+  var w=document.createElement('div'); w.className='inwrap';
+  var pre=document.createElement('span'); pre.className='pre'; pre.textContent='$';
+  var i=document.createElement('input'); i.type='number'; i.className='money'; i.value=val; i.placeholder=ph; i.min='0'; i.inputMode='decimal';
+  w.appendChild(pre); w.appendChild(i); return {wrap:w,input:i};
+}
+function pctInput(val, ph){
+  var w=document.createElement('div'); w.className='inwrap';
+  var i=document.createElement('input'); i.type='number'; i.className='pct'; i.value=val; i.placeholder=ph; i.inputMode='decimal';
+  var suf=document.createElement('span'); suf.className='suf'; suf.textContent='%';
+  w.appendChild(i); w.appendChild(suf); return {wrap:w,input:i};
+}
+
+function cardFor(p, idx){
+  var card=document.createElement('div'); card.className='card'+(p.example?' example':'');
+  var head=document.createElement('div'); head.className='cardhead';
+  var ix=document.createElement('span'); ix.className='idx'; ix.textContent=idx+1;
+  var title=document.createElement('strong'); title.style.fontSize='.95rem';
+  title.textContent = p.example?'Example — replace with your own':'Option '+(idx+1);
+  if(p.example) title.className='muted';
+  var rm=document.createElement('button'); rm.className='remove'; rm.setAttribute('aria-label','Remove option'); rm.textContent='×';
+  rm.onclick=function(){ projects=projects.filter(function(x){return x.id!==p.id;}); render(); };
+  head.appendChild(ix); head.appendChild(title); head.appendChild(rm); card.appendChild(head);
+
+  var grid=document.createElement('div'); grid.className='grid';
+  var outs=document.createElement('div'); outs.className='result';
+  function live(){ unmark(p,title,card); updateOutputs(p,outs); renderCompare(); save(); }
+
+  // name
+  var nameI=document.createElement('input'); nameI.type='text'; nameI.value=p.name; nameI.placeholder='e.g. New equipment, a hire, a renovation';
+  nameI.oninput=function(){ p.name=nameI.value; live(); };
+  var nf=field('What are you considering?', null, nameI); nf.classList.add('full'); grid.appendChild(nf);
+
+  // upfront cost + estimator
+  var costM=moneyInput(p.cost,'0');
+  costM.input.oninput=function(){ p.cost=costM.input.value; live(); };
+  var cf=field('Upfront cost','Everything you pay to get started',costM.wrap);
+  var cLink=document.createElement('button'); cLink.type='button'; cLink.className='linkbtn';
+  cLink.textContent = p.costOpen?'Hide estimator':'Not sure? Help me estimate';
+  cLink.onclick=function(){ p.costOpen=!p.costOpen; render(); };
+  cf.appendChild(cLink); grid.appendChild(cf);
+
+  var cHelp=document.createElement('div'); cHelp.className='helper'+(p.costOpen?' show':'');
+  if(p.costOpen){
+    var ct=document.createElement('div'); ct.className='htitle'; ct.textContent='Add up the upfront cost'; cHelp.appendChild(ct);
+    var cg=document.createElement('div'); cg.className='hgrid';
+    var eq=moneyInput(p.cEquip||'','0'), su=moneyInput(p.cSetup||'','0'), st=moneyInput(p.cStart||'','0');
+    var cOut=document.createElement('div'); cOut.className='hout';
+    function cRecompute(){ var tot=num(p.cEquip)+num(p.cSetup)+num(p.cStart); p.cost= tot? String(Math.round(tot)) : ''; costM.input.value=p.cost; cOut.textContent='Total upfront cost: '+fmt.format(Math.round(tot)); live(); }
+    eq.input.oninput=function(){ p.cEquip=eq.input.value; cRecompute(); };
+    su.input.oninput=function(){ p.cSetup=su.input.value; cRecompute(); };
+    st.input.oninput=function(){ p.cStart=st.input.value; cRecompute(); };
+    cg.appendChild(field('Purchase / equipment price',null,eq.wrap));
+    cg.appendChild(field('Setup / installation',null,su.wrap));
+    cg.appendChild(field('Other startup (deposits, initial stock, training)',null,st.wrap));
+    cHelp.appendChild(cg);
+    cOut.textContent='Total upfront cost: '+fmt.format(Math.round(num(p.cEquip)+num(p.cSetup)+num(p.cStart)));
+    cHelp.appendChild(cOut);
+  }
+  grid.appendChild(cHelp);
+
+  // yearly benefit — simple field OR detailed builder
+  if(p.benMode!=='builder'){
+    var annM=moneyInput(p.annual,'0');
+    annM.input.oninput=function(){ p.annual=annM.input.value; live(); };
+    var af=field('Extra cash each year','Extra income or money saved, per year',annM.wrap);
+    var bLink=document.createElement('button'); bLink.type='button'; bLink.className='linkbtn';
+    bLink.textContent='Build it up (labour, costs, growth…)';
+    bLink.onclick=function(){ p.benMode='builder'; p.benOpen=true; render(); };
+    af.appendChild(bLink); grid.appendChild(af);
+  } else {
+    var bWrap=document.createElement('div'); bWrap.className='field full';
+    var bl=document.createElement('label'); bl.textContent='Build the yearly cash benefit'; bWrap.appendChild(bl);
+    var bHelp=document.createElement('div'); bHelp.className='helper show';
+    var bsub=document.createElement('div'); bsub.className='hsub'; bsub.textContent='Enter monthly amounts where shown; the tool works out the yearly net and projects 5 years.'; bHelp.appendChild(bsub);
+    var bg=document.createElement('div'); bg.className='hgrid';
+    var sales=moneyInput(p.bSales||'','0'), lab=moneyInput(p.bLabour||'','0'), oth=moneyInput(p.bOther||'','0'),
+        shr=moneyInput(p.bShrink||'','0'), sav=moneyInput(p.bSave||'','0'), gro=pctInput(p.bGrowth||'','0');
+    var bOut=document.createElement('div'); bOut.className='hout';
+    function bRecompute(){
+      var b=base1(p); bOut.textContent='Year 1 net cash benefit: '+fmt.format(Math.round(b))+(num(p.bGrowth)?('  ·  then '+(num(p.bGrowth)>0?'+':'')+num(p.bGrowth)+'%/yr'):'');
+      live();
+    }
+    sales.input.oninput=function(){ p.bSales=sales.input.value; bRecompute(); };
+    lab.input.oninput=function(){ p.bLabour=lab.input.value; bRecompute(); };
+    oth.input.oninput=function(){ p.bOther=oth.input.value; bRecompute(); };
+    shr.input.oninput=function(){ p.bShrink=shr.input.value; bRecompute(); };
+    sav.input.oninput=function(){ p.bSave=sav.input.value; bRecompute(); };
+    gro.input.oninput=function(){ p.bGrowth=gro.input.value; bRecompute(); };
+    bg.appendChild(field('Extra sales / revenue, per month',null,sales.wrap));
+    bg.appendChild(field('Extra labour / wages, per month',null,lab.wrap));
+    bg.appendChild(field('Other running costs, per month','Materials, fees, utilities',oth.wrap));
+    bg.appendChild(field('Shrinkage / loss, per year','Waste, breakage, theft, spoilage',shr.wrap));
+    bg.appendChild(field('Other yearly savings',null,sav.wrap));
+    bg.appendChild(field('Yearly growth / inflation','How much the yearly benefit rises each year',gro.wrap));
+    bHelp.appendChild(bg);
+    bOut.textContent='Year 1 net cash benefit: '+fmt.format(Math.round(base1(p)))+(num(p.bGrowth)?('  ·  then '+(num(p.bGrowth)>0?'+':'')+num(p.bGrowth)+'%/yr'):'');
+    bHelp.appendChild(bOut);
+    var back=document.createElement('button'); back.type='button'; back.className='linkbtn'; back.style.marginTop='10px'; back.textContent='Use one simple yearly number instead';
+    back.onclick=function(){ p.benMode='annual'; render(); };
+    bHelp.appendChild(back);
+    bWrap.appendChild(bHelp); grid.appendChild(bWrap);
+  }
+
+  // readiness
+  var ready=document.createElement('div'); ready.className='ready';
+  var rl=document.createElement('div'); rl.className='rlabel'; rl.textContent='Quick readiness check'; ready.appendChild(rl);
+  RQ.forEach(function(q,qi){
+    var row=document.createElement('div'); row.className='qrow';
+    var qt=document.createElement('span'); qt.className='qt'; qt.textContent=q; row.appendChild(qt);
+    var yn=document.createElement('div'); yn.className='yn';
+    ['yes','no'].forEach(function(v){
+      var b=document.createElement('button'); b.type='button'; b.setAttribute('data-v',v); b.textContent=v==='yes'?'Yes':'No';
+      b.setAttribute('aria-pressed', String(p.ready[qi]===(v==='yes')));
+      b.onclick=function(){ p.ready[qi]=(v==='yes'); render(); };
+      yn.appendChild(b);
+    });
+    row.appendChild(yn); ready.appendChild(row);
+  });
+  grid.appendChild(ready);
+
+  grid.appendChild(outs);
+  card.appendChild(grid);
+  updateOutputs(p,outs);
+  return card;
+}
+function unmark(p,title,card){ if(p.example){ p.example=false; title.textContent='Option'; title.className=''; card.classList.remove('example'); } }
+
+function updateOutputs(p, outs){
+  outs.innerHTML="";
+  if(!hasInput(p)){
+    var hint=document.createElement('p'); hint.className='muted'; hint.style.fontSize='.85rem';
+    hint.textContent='Fill in a cost and a yearly benefit above — results and the 5-year projection appear here.';
+    outs.appendChild(hint); return;
+  }
+  var cost=upfront(p), cfs=cashflows(p), v=npv(cost,cfs), pb=payback(cost,cfs), r=roc(cost,cfs), rd=readiness(p);
+  outs.appendChild(metric(fmt.format(Math.round(v)),'Value created',v>=0?'var(--good)':'var(--bad)'));
+  var rocColor = clearsHurdle(r)?'var(--good)':(belowHurdle(r)?'var(--bad)':'var(--ink)');
+  var rocLabel = clearsHurdle(r)?'Return on capital ✓':(belowHurdle(r)?'Return on capital ✕':'Return on capital');
+  outs.appendChild(metric(r!=null?(Math.round(r*1000)/10)+'%':'—',rocLabel,rocColor));
+  outs.appendChild(metric(pb?(Math.round(pb*10)/10)+' yrs':'—','Pays back in','var(--ink)'));
+  var badge=document.createElement('span'); badge.className='verdict ';
+  if(rd==='pause'){ badge.className+='v-warn'; badge.textContent='Get ready first'; }
+  else if(rd==='incomplete'){ badge.className+='v-none'; badge.textContent='Finish the checks'; }
+  else if(v>=0){ badge.className+='v-good'; badge.textContent='Looks worth it'; }
+  else { badge.className+='v-bad'; badge.textContent="Numbers don't support it yet"; }
+  outs.appendChild(badge);
+
+  // projection table
+  var proj=document.createElement('div'); proj.className='proj';
+  var pl=document.createElement('div'); pl.className='plabel'; pl.textContent='5-year cash projection'; proj.appendChild(pl);
+  var pw=document.createElement('div'); pw.className='projwrap';
+  var t=document.createElement('table'); t.className='pt';
+  var head='<tr><th>Year</th><th>0 (now)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>';
+  var row='<tr><td>Net cash</td>';
+  row+='<td class="neg">'+fmt.format(-Math.round(cost))+'</td>';
+  cfs.forEach(function(c){ row+='<td'+(c<0?' class="neg"':'')+'>'+fmt.format(Math.round(c))+'</td>'; });
+  row+='</tr>';
+  t.innerHTML='<thead>'+head+'</thead><tbody>'+row+'</tbody>';
+  pw.appendChild(t); proj.appendChild(pw); outs.appendChild(proj);
+
+  var note=document.createElement('div'); note.className='readnote';
+  if(rd==='pause') note.textContent='One or more readiness answers is "No" — worth sorting out before you commit.';
+  else if(rd==='incomplete') note.textContent='Answer the five checks to see whether this is ready to fund.';
+  else if(v>=0) note.textContent='Positive value at your required return. Compare it with your other options below.';
+  else note.textContent='At these numbers it returns less than you asked for. Revisit the benefit estimate or the cost.';
+  outs.appendChild(note);
+}
+function metric(val,label,color){
+  var m=document.createElement('div'); m.className='metric';
+  var v=document.createElement('span'); v.className='mv tnum'; v.textContent=val; if(color) v.style.color=color;
+  var l=document.createElement('span'); l.className='ml'; l.textContent=label;
+  m.appendChild(v); m.appendChild(l); return m;
+}
+
+function renderCompare(){
+  var body=document.getElementById('compareBody'); body.innerHTML="";
+  var scored=projects.filter(hasInput).map(function(p){
+    var cost=upfront(p),cfs=cashflows(p);
+    return {name:p.name||'(unnamed option)',cost:cost,npv:npv(cost,cfs),roc:roc(cost,cfs),pb:payback(cost,cfs),rd:readiness(p)};
+  });
+  if(scored.length===0){
+    var e=document.createElement('p'); e.className='emptycompare'; e.textContent="Add a couple of options above and they'll line up here, ranked."; body.appendChild(e); return;
+  }
+  var ready=scored.filter(function(s){return s.rd==='ready';}).sort(function(a,b){return b.npv-a.npv;});
+  var notready=scored.filter(function(s){return s.rd!=='ready';});
+  var tw=document.createElement('div'); tw.className='tablewrap';
+  var t=document.createElement('table'); t.className='cmp';
+  t.innerHTML='<thead><tr><th>#</th><th>Option</th><th class="num">Upfront</th><th class="num">Value created</th><th class="num">ROC</th><th class="num">Pays back</th><th>Status</th></tr></thead>';
+  var tb=document.createElement('tbody');
+  ready.forEach(function(s,i){ tb.appendChild(rowFor(String(i+1),s,pill(i===0?'Consider first':'Ready','var(--accent-soft)','var(--accent-ink)'))); });
+  notready.forEach(function(s){
+    var label=s.rd==='pause'?'Get ready first':'Finish checks';
+    var bg=s.rd==='pause'?'var(--warn-soft)':'var(--surface-2)';
+    var fg=s.rd==='pause'?'var(--warn)':'var(--muted)';
+    tb.appendChild(rowFor('–',s,pill(label,bg,fg)));
+  });
+  t.appendChild(tb); tw.appendChild(t); body.appendChild(tw);
+  var take=document.createElement('div'); take.className='takeaway';
+  if(ready.length>0){ take.textContent='Based on the numbers, "'+ready[0].name+'" creates the most value of your ready options. Remember: a cheaper quick win or an unavoidable repair can still reasonably go first.'; }
+  else { take.textContent='None of your options are fully ready yet. Clear the readiness gaps above, then compare.'; }
+  body.appendChild(take);
+}
+function rowFor(rank,s,statusCell){
+  var tr=document.createElement('tr');
+  function td(txt,cls,color){ var c=document.createElement('td'); if(cls)c.className=cls; c.textContent=txt; if(color)c.style.color=color; return c; }
+  var r0=document.createElement('td'); r0.className='rank'; r0.textContent=rank; tr.appendChild(r0);
+  tr.appendChild(td(s.name,null));
+  tr.appendChild(td(fmt.format(Math.round(s.cost)),'num'));
+  tr.appendChild(td(fmt.format(Math.round(s.npv)),'num',s.npv>=0?'var(--good)':'var(--bad)'));
+  tr.appendChild(td(s.roc!=null?(Math.round(s.roc*1000)/10)+'%':'—','num', clearsHurdle(s.roc)?'var(--good)':(belowHurdle(s.roc)?'var(--bad)':null)));
+  tr.appendChild(td(s.pb?(Math.round(s.pb*10)/10)+' yrs':'—','num'));
+  var c5=document.createElement('td'); c5.appendChild(statusCell); tr.appendChild(c5);
+  return tr;
+}
+function pill(text,bg,fg){ var s=document.createElement('span'); s.className='pill'; s.textContent=text; s.style.background=bg; s.style.color=fg; return s; }
+
+function renderExec(){
+  var wrap=document.getElementById('execWrap'), body=document.getElementById('execBody');
+  var scored=projects.filter(hasInput).map(function(p){
+    var cost=upfront(p),cfs=cashflows(p);
+    return {name:p.name||'(unnamed option)',cost:cost,npv:npv(cost,cfs),roc:roc(cost,cfs),pb:payback(cost,cfs),rd:readiness(p)};
+  });
+  if(scored.length===0){ wrap.hidden=true; return; }
+  wrap.hidden=false; body.innerHTML="";
+  var box=document.createElement('div'); box.className='exec';
+  var ready=scored.filter(function(s){return s.rd==='ready';}).sort(function(a,b){return b.npv-a.npv;});
+  var pause=scored.filter(function(s){return s.rd==='pause';});
+  var incomplete=scored.filter(function(s){return s.rd==='incomplete';});
+  var total=scored.reduce(function(a,s){return a+s.cost;},0);
+
+  var p1=document.createElement('p'); p1.className='lead';
+  p1.textContent='You compared '+scored.length+' option'+(scored.length>1?'s':'')+', about '+fmt.format(Math.round(total))+' in total upfront.';
+  box.appendChild(p1);
+
+  if(ready.length>0){
+    var best=ready[0];
+    var p2=document.createElement('p');
+    var hc = hurdle!=null ? (best.roc>=hurdle/100 ? ' It clears your '+hurdle+'% target return.' : ' Note: it falls short of your '+hurdle+'% target return.') : '';
+    p2.innerHTML='The strongest by value is <strong>'+esc(best.name)+'</strong> — it creates '+fmt.format(Math.round(best.npv))+' in value and returns about '+(Math.round(best.roc*1000)/10)+'% on your money'+(best.pb?(', paying back in ~'+(Math.round(best.pb*10)/10)+' years'):'')+'.'+hc;
+    box.appendChild(p2);
+  } else {
+    var p2b=document.createElement('p'); p2b.textContent='None of your options are fully ready to fund yet — clear the readiness gaps below first.'; box.appendChild(p2b);
+  }
+
+  var ul=document.createElement('ul');
+  if(ready.length>0){
+    var li=document.createElement('li');
+    li.innerHTML='<strong>Ready to fund now:</strong> '+ready.map(function(s){return esc(s.name);}).join(', ')+'.';
+    ul.appendChild(li);
+  }
+  if(pause.length>0){
+    var li2=document.createElement('li');
+    li2.innerHTML='<strong>Get ready first:</strong> '+pause.map(function(s){return esc(s.name);}).join(', ')+' — a readiness answer was "No".';
+    ul.appendChild(li2);
+  }
+  if(incomplete.length>0){
+    var li3=document.createElement('li');
+    li3.innerHTML='<strong>Finish the checks for:</strong> '+incomplete.map(function(s){return esc(s.name);}).join(', ')+'.';
+    ul.appendChild(li3);
+  }
+  var below = ready.filter(function(s){return belowHurdle(s.roc);});
+  if(hurdle!=null && below.length>0){
+    var li4=document.createElement('li');
+    li4.innerHTML='<strong>Below your '+hurdle+'% target:</strong> '+below.map(function(s){return esc(s.name);}).join(', ')+' — positive, but working your money less hard than you asked.';
+    ul.appendChild(li4);
+  }
+  if(ul.children.length) box.appendChild(ul);
+
+  if(ready.length>0){
+    var p3=document.createElement('p');
+    p3.innerHTML='A reasonable order by value: '+ready.map(function(s,i){return (i+1)+') '+esc(s.name);}).join('  ·  ')+'. A cheap quick win or an unavoidable repair can still move ahead of the biggest number.';
+    box.appendChild(p3);
+  }
+
+  var cau=document.createElement('p'); cau.className='cau';
+  cau.textContent='These are estimates. Go back and sanity-check any figure you were unsure about — especially sales, running costs, and shrinkage — before you commit money.';
+  box.appendChild(cau);
+
+  body.appendChild(box);
+}
+function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function renderFB(){
+  var box=document.getElementById('fbQuestions'); box.innerHTML="";
+  FBQ.forEach(function(q,qi){
+    var row=document.createElement('div'); row.className='fbq';
+    var qt=document.createElement('span'); qt.className='qt'; qt.textContent=q; row.appendChild(qt);
+    var st=document.createElement('div'); st.className='stars'; st.setAttribute('role','group');
+    for(var n=1;n<=5;n++){(function(n){
+      var b=document.createElement('button'); b.type='button'; b.textContent=n;
+      b.setAttribute('aria-pressed',String(fb.scores[qi]===n));
+      b.onclick=function(){ fb.scores[qi]=n; renderFB(); save(); };
+      st.appendChild(b);
+    })(n);}
+    row.appendChild(st); box.appendChild(row);
+  });
+}
+document.getElementById('fbComment').oninput=function(e){ fb.comment=e.target.value; save(); };
+document.getElementById('fbChange').oninput=function(e){ fb.change=e.target.value; save(); };
+
+function buildSummary(){
+  var lines=[];
+  lines.push("CAPITAL COMPASS — MY DECISION SUMMARY");
+  lines.push("Required return used: "+Math.round(rate*100)+"%");
+  if(hurdle!=null) lines.push("Target return (hurdle): "+hurdle+"%");
+  lines.push("");
+  var scored=projects.filter(hasInput);
+  if(scored.length===0){ lines.push("(No options entered yet.)"); }
+  scored.forEach(function(p,i){
+    var cost=upfront(p),cfs=cashflows(p),v=npv(cost,cfs),pb=payback(cost,cfs),r=roc(cost,cfs),rd=readiness(p);
+    lines.push((i+1)+". "+(p.name||'(unnamed)'));
+    lines.push("   Upfront: "+fmt.format(Math.round(cost))+"  |  Value created: "+fmt.format(Math.round(v))+"  |  ROC: "+(r!=null?(Math.round(r*1000)/10)+"%":"—")+"  |  Pays back: "+(pb?(Math.round(pb*10)/10+" yrs"):"—"));
+    lines.push("   5-yr net cash: now "+fmt.format(-Math.round(cost))+"; "+cfs.map(function(c){return fmt.format(Math.round(c));}).join("; "));
+    lines.push("   Readiness: "+(rd==='ready'?'Ready':rd==='pause'?'Not ready (a No answer)':'Checks unfinished'));
+  });
+  var ready=scored.map(function(p){var c=upfront(p);return {n:p.name,v:npv(c,cashflows(p)),rd:readiness(p)};}).filter(function(s){return s.rd==='ready';}).sort(function(a,b){return b.v-a.v;});
+  if(ready.length){ lines.push(""); lines.push("Suggested first by value: "+(ready[0].n||'(unnamed)')); }
+  lines.push(""); lines.push("FEEDBACK");
+  FBQ.forEach(function(q,qi){ lines.push("- "+q+": "+(fb.scores[qi]?fb.scores[qi]+"/5":"(not rated)")); });
+  if(fb.comment) lines.push("- Confusing/missing/keep: "+fb.comment);
+  if(fb.change) lines.push("- Changed a decision/order: "+fb.change);
+  return lines.join("\n");
+}
+document.getElementById('copyBtn').onclick=function(){
+  var text=buildSummary(), msg=document.getElementById('copiedMsg');
+  function ok(){ msg.hidden=false; setTimeout(function(){msg.hidden=true;},4000); }
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok).catch(function(){ selFallback(text,ok); }); }
+  else { selFallback(text,ok); }
+};
+function selFallback(text,ok){
+  var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); ok(); }catch(e){} document.body.removeChild(ta);
+}
+
+function save(){ try{ localStorage.setItem('cc_v11', JSON.stringify({rate:rate,hurdle:hurdle,projects:projects,fb:fb,uid:uid})); }catch(e){} }
+function load(){
+  try{ var raw=localStorage.getItem('cc_v11'); if(!raw) return false; var d=JSON.parse(raw);
+    if(d&&d.projects){ projects=d.projects; rate=d.rate||0.10; hurdle=(d.hurdle===undefined?null:d.hurdle); fb=d.fb||{scores:{},comment:"",change:""}; uid=d.uid||(projects.length+1);
+      projects.forEach(function(p){ if(p.benMode===undefined) p.benMode='annual'; if(p.ready===undefined) p.ready=[null,null,null,null,null]; }); return true; }
+  }catch(e){} return false;
+}
+
+document.getElementById('addTop').onclick=addOne;
+document.getElementById('addBottom').onclick=addOne;
+function addOne(){ projects.push(blank()); render(); window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}); }
+document.getElementById('loadEx').onclick=function(){ projects=exampleSet(); render(); };
+document.getElementById('clearAll').onclick=function(){ projects=[blank()]; fb={scores:{},comment:"",change:""}; renderFB(); render(); };
+var rateEl=document.getElementById('rate'), rateVal=document.getElementById('rateVal');
+rateEl.oninput=function(){ rate=parseInt(rateEl.value,10)/100; rateVal.textContent=rateEl.value+'%'; render(); };
+var hurdleEl=document.getElementById('hurdle');
+hurdleEl.oninput=function(){ var v=parseFloat(hurdleEl.value); hurdle=isFinite(v)?v:null; render(); };
+document.getElementById('themeBtn').onclick=function(){
+  var cur=document.documentElement.getAttribute('data-theme');
+  var next=cur==='dark'?'light':cur==='light'?'dark':(matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark');
+  document.documentElement.setAttribute('data-theme',next);
+};
+
+if(!load()){ projects=exampleSet(); }
+rateEl.value=Math.round(rate*100); rateVal.textContent=Math.round(rate*100)+'%';
+if(hurdle!=null) hurdleEl.value=hurdle;
+renderFB(); render();
+</script>
+
+</body>
+</html>
